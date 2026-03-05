@@ -1,0 +1,14 @@
+{
+    "description": "Control as Escape when tapped, Control when held",
+    "manipulators": [
+        {
+            "from": {
+                "key_code": "left_control",
+                "modifiers": { "optional": ["any"] }
+            },
+            "to": [{ "key_code": "left_control" }],
+            "to_if_alone": [{ "key_code": "escape" }],
+            "type": "basic"
+        }
+    ]
+}
