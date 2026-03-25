@@ -204,13 +204,8 @@ vim.keymap.set('t', '<Esc><Esc>', '<C-\\><C-n>', { desc = 'Exit terminal mode' }
 -- vim.keymap.set('n', '<down>', '<cmd>echo "Use j to move!!"<CR>')
 
 -- Keybinds to make split navigation easier.
---  Use CTRL+<hjkl> to switch between windows
---
---  See `:help wincmd` for a list of all window commands
-vim.keymap.set('n', '<C-h>', '<C-w><C-h>', { desc = 'Move focus to the left window' })
-vim.keymap.set('n', '<C-l>', '<C-w><C-l>', { desc = 'Move focus to the right window' })
-vim.keymap.set('n', '<C-j>', '<C-w><C-j>', { desc = 'Move focus to the lower window' })
-vim.keymap.set('n', '<C-k>', '<C-w><C-k>', { desc = 'Move focus to the upper window' })
+-- NOTE: <C-h/j/k/l> navigation is now handled by vim-tmux-navigator
+-- (see lua/custom/plugins/init.lua) so it works across both nvim splits and tmux panes.
 
 -- NOTE: Some terminals have colliding keymaps or are not able to send distinct keycodes
 -- vim.keymap.set("n", "<C-S-h>", "<C-w>H", { desc = "Move window to the left" })
@@ -607,12 +602,16 @@ require('lazy').setup({
         -- gopls = {},
         -- pyright = {},
         -- rust_analyzer = {},
-        --
-        -- Some languages (like typescript) have entire language plugins that can be useful:
-        --    https://github.com/pmizio/typescript-tools.nvim
-        --
-        -- But for many setups, the LSP (`ts_ls`) will work just fine
-        -- ts_ls = {},
+
+        -- TypeScript / JavaScript
+        ts_ls = {},
+        eslint = {},
+
+        -- Godot4 GDScript (connects to Godot's built-in LSP on port 6005)
+        -- Make sure Godot editor is running with: Editor > Editor Settings > Network > Language Server > enabled
+        gdscript = {
+          cmd = vim.lsp.rpc.connect('127.0.0.1', 6005),
+        },
 
         stylua = {}, -- Used to format Lua code
 
@@ -653,9 +652,12 @@ require('lazy').setup({
       --    :Mason
       --
       -- You can press `g?` for help in this menu.
-      local ensure_installed = vim.tbl_keys(servers or {})
+      -- Servers NOT managed by Mason (e.g. Godot's built-in LSP)
+      local external_servers = { gdscript = true }
+
+      local ensure_installed = vim.tbl_filter(function(name) return not external_servers[name] end, vim.tbl_keys(servers or {}))
       vim.list_extend(ensure_installed, {
-        -- You can add other tools here that you want Mason to install
+        'prettierd', -- Fast prettier daemon for JS/TS formatting
       })
 
       require('mason-tool-installer').setup { ensure_installed = ensure_installed }
@@ -699,11 +701,17 @@ require('lazy').setup({
       end,
       formatters_by_ft = {
         lua = { 'stylua' },
-        -- Conform can also run multiple formatters sequentially
-        -- python = { "isort", "black" },
-        --
-        -- You can use 'stop_after_first' to run the first available formatter from the list
-        -- javascript = { "prettierd", "prettier", stop_after_first = true },
+        javascript = { 'prettierd' },
+        javascriptreact = { 'prettierd' },
+        typescript = { 'prettierd' },
+        typescriptreact = { 'prettierd' },
+        css = { 'prettierd' },
+        html = { 'prettierd' },
+        json = { 'prettierd' },
+        jsonc = { 'prettierd' },
+        yaml = { 'prettierd' },
+        markdown = { 'prettierd' },
+        -- GDScript: uses Godot's built-in formatter via LSP fallback
       },
     },
   },
@@ -728,12 +736,12 @@ require('lazy').setup({
           -- `friendly-snippets` contains a variety of premade snippets.
           --    See the README about individual language/framework/plugin snippets:
           --    https://github.com/rafamadriz/friendly-snippets
-          -- {
-          --   'rafamadriz/friendly-snippets',
-          --   config = function()
-          --     require('luasnip.loaders.from_vscode').lazy_load()
-          --   end,
-          -- },
+          {
+            'rafamadriz/friendly-snippets',
+            config = function()
+              require('luasnip.loaders.from_vscode').lazy_load()
+            end,
+          },
         },
         opts = {},
       },
@@ -869,7 +877,11 @@ require('lazy').setup({
     branch = 'main',
     -- [[ Configure Treesitter ]] See `:help nvim-treesitter-intro`
     config = function()
-      local parsers = { 'bash', 'c', 'diff', 'html', 'lua', 'luadoc', 'markdown', 'markdown_inline', 'query', 'vim', 'vimdoc' }
+      local parsers = {
+        'bash', 'c', 'css', 'diff', 'gdscript', 'gdshader', 'html',
+        'javascript', 'json', 'jsonc', 'lua', 'luadoc', 'markdown',
+        'markdown_inline', 'query', 'tsx', 'typescript', 'vim', 'vimdoc', 'yaml',
+      }
       require('nvim-treesitter').install(parsers)
       vim.api.nvim_create_autocmd('FileType', {
         callback = function(args)
@@ -907,7 +919,7 @@ require('lazy').setup({
   -- require 'kickstart.plugins.debug',
   -- require 'kickstart.plugins.indent_line',
   -- require 'kickstart.plugins.lint',
-  -- require 'kickstart.plugins.autopairs',
+  require 'kickstart.plugins.autopairs',
   -- require 'kickstart.plugins.neo-tree',
   -- require 'kickstart.plugins.gitsigns', -- adds gitsigns recommend keymaps
 
@@ -915,7 +927,7 @@ require('lazy').setup({
   --    This is the easiest way to modularize your config.
   --
   --  Uncomment the following line and add your plugins to `lua/custom/plugins/*.lua` to get going.
-  -- { import = 'custom.plugins' },
+  { import = 'custom.plugins' },
   --
   -- For additional information with loading, sourcing and examples see `:help lazy.nvim-🔌-plugin-spec`
   -- Or use telescope!

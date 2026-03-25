@@ -5,4 +5,20 @@
 
 ---@module 'lazy'
 ---@type LazySpec
-return {}
+return {
+  { -- Seamless navigation between tmux panes and nvim splits
+    'christoomey/vim-tmux-navigator',
+    cmd = {
+      'TmuxNavigateLeft',
+      'TmuxNavigateDown',
+      'TmuxNavigateUp',
+      'TmuxNavigateRight',
+    },
+    keys = {
+      { '<C-h>', '<cmd>TmuxNavigateLeft<CR>', desc = 'Move focus left (nvim/tmux)' },
+      { '<C-j>', '<cmd>TmuxNavigateDown<CR>', desc = 'Move focus down (nvim/tmux)' },
+      { '<C-k>', '<cmd>TmuxNavigateUp<CR>', desc = 'Move focus up (nvim/tmux)' },
+      { '<C-l>', '<cmd>TmuxNavigateRight<CR>', desc = 'Move focus right (nvim/tmux)' },
+    },
+  },
+}
